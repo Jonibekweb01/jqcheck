@@ -1,0 +1,26 @@
+body {
+  font-family: "Poppins", sans-serif;
+  background-color: #f4f6f8;
+  margin: 0;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  min-height: 100vh;
+}
+
+.main {
+  background-color: #fff;
+  border-radius: 10px;
+  margin-left: 20px;
+}
+
+.status-btn {
+  width: 120px;
+  font-weight: 500;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f1f5f9;
+}
