@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Users, Calendar, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+import {
+  Users,
+  Calendar,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+} from "lucide-react";
 
 const groups = {
   "Group 1": ["Jakhongir", "Hasan", "Husan", "Javohir"],
@@ -7,8 +13,18 @@ const groups = {
 };
 
 const months = [
-  "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-  "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"
+  "Yanvar",
+  "Fevral",
+  "Mart",
+  "Aprel",
+  "May",
+  "Iyun",
+  "Iyul",
+  "Avgust",
+  "Sentyabr",
+  "Oktyabr",
+  "Noyabr",
+  "Dekabr",
 ];
 
 function App() {
@@ -39,7 +55,10 @@ function App() {
   }, [attendance]);
 
   const sendTelegramMessage = (student, status, date) => {
-    const message = `${student} ${date} darsga ${status}`;
+    const message = `Guruh raqami: ${student}, ${date} darsga ${
+      status === "keldi" ? "✅" : "❌"
+    }`;
+
     fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -49,7 +68,9 @@ function App() {
 
   const toggleAttendance = (month, student, type) => {
     const today = new Date();
-    const date = `${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`;
+    const date = `${today.getDate()}.${
+      today.getMonth() + 1
+    }.${today.getFullYear()}`;
 
     setAttendance((prev) => {
       const monthData = prev[month] || {};
@@ -60,7 +81,11 @@ function App() {
         kemadi: type === "kemadi" ? !studentData.kemadi : false,
       };
 
-      const statusMsg = newData.keldi ? "keldi" : newData.kemadi ? "kemadi" : "none";
+      const statusMsg = newData.keldi
+        ? "keldi"
+        : newData.kemadi
+        ? "kemadi"
+        : "none";
       if (statusMsg !== "none") {
         sendTelegramMessage(student, statusMsg, date);
       }
@@ -72,9 +97,10 @@ function App() {
   const getStats = () => {
     const monthData = attendance[months[currentMonth]] || {};
     const students = groups[selectedGroup];
-    let present = 0, absent = 0;
-    
-    students.forEach(student => {
+    let present = 0,
+      absent = 0;
+
+    students.forEach((student) => {
       if (monthData[student]?.keldi) present++;
       if (monthData[student]?.kemadi) absent++;
     });
@@ -91,7 +117,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
             <Users className="text-indigo-600" size={36} />
-            JQ Davomat Tizimi 
+            JQ Davomat Tizimi
           </h1>
         </div>
       </div>
@@ -111,7 +137,9 @@ function App() {
                 onChange={(e) => setSelectedGroup(e.target.value)}
               >
                 {Object.keys(groups).map((g) => (
-                  <option key={g} value={g}>{g}</option>
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
                 ))}
               </select>
             </div>
@@ -127,7 +155,9 @@ function App() {
                 onChange={(e) => setCurrentMonth(Number(e.target.value))}
               >
                 {months.map((m, idx) => (
-                  <option key={idx} value={idx}>{m}</option>
+                  <option key={idx} value={idx}>
+                    {m}
+                  </option>
                 ))}
               </select>
             </div>
@@ -152,7 +182,9 @@ function App() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Kelgan</p>
-                <p className="text-3xl font-bold text-green-600">{stats.present}</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {stats.present}
+                </p>
               </div>
               <div className="bg-green-100 p-4 rounded-full">
                 <CheckCircle className="text-green-600" size={32} />
@@ -164,7 +196,9 @@ function App() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Kelmagan</p>
-                <p className="text-3xl font-bold text-red-600">{stats.absent}</p>
+                <p className="text-3xl font-bold text-red-600">
+                  {stats.absent}
+                </p>
               </div>
               <div className="bg-red-100 p-4 rounded-full">
                 <XCircle className="text-red-600" size={32} />
@@ -177,7 +211,10 @@ function App() {
               <div>
                 <p className="text-gray-600 text-sm font-medium">Foiz</p>
                 <p className="text-3xl font-bold text-indigo-600">
-                  {stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0}%
+                  {stats.total > 0
+                    ? Math.round((stats.present / stats.total) * 100)
+                    : 0}
+                  %
                 </p>
               </div>
               <div className="bg-indigo-100 p-4 rounded-full">
@@ -194,7 +231,7 @@ function App() {
               {selectedGroup} - {months[currentMonth]}
             </h2>
           </div>
-          
+
           <div className="p-6">
             <div className="space-y-4">
               {groups[selectedGroup].map((student) => {
@@ -220,7 +257,13 @@ function App() {
                             ? "bg-green-500 text-white shadow-lg"
                             : "bg-gray-100 text-gray-700 hover:bg-green-50"
                         }`}
-                        onClick={() => toggleAttendance(months[currentMonth], student, "keldi")}
+                        onClick={() =>
+                          toggleAttendance(
+                            months[currentMonth],
+                            student,
+                            "keldi"
+                          )
+                        }
                       >
                         <CheckCircle size={20} />
                         Keldi
@@ -232,7 +275,13 @@ function App() {
                             ? "bg-red-500 text-white shadow-lg"
                             : "bg-gray-100 text-gray-700 hover:bg-red-50"
                         }`}
-                        onClick={() => toggleAttendance(months[currentMonth], student, "kemadi")}
+                        onClick={() =>
+                          toggleAttendance(
+                            months[currentMonth],
+                            student,
+                            "kemadi"
+                          )
+                        }
                       >
                         <XCircle size={20} />
                         Kelmadi
