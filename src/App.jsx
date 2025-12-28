@@ -5,6 +5,7 @@ import {
   CheckCircle,
   XCircle,
   TrendingUp,
+  Send,
 } from "lucide-react";
 
 const groups = {
@@ -34,6 +35,7 @@ function App() {
   const [selectedGroup, setSelectedGroup] = useState("Group 1");
   const [attendance, setAttendance] = useState({});
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [isSending, setIsSending] = useState(false);
 
   // Load from state on mount
   useEffect(() => {
@@ -54,43 +56,88 @@ function App() {
     }
   }, [attendance]);
 
-  const sendTelegramMessage = (student, status, date) => {
-    const message = `Guruh raqami: ${student}, ${date} darsga ${
-      status === "keldi" ? "✅" : "❌"
-    }`;
-
-    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: CHAT_ID, text: message }),
-    }).catch((err) => console.error(err));
-  };
-
-  const toggleAttendance = (month, student, type) => {
+  const sendTelegramSummary = async () => {
     const today = new Date();
     const date = `${today.getDate()}.${
       today.getMonth() + 1
     }.${today.getFullYear()}`;
+    const monthData = attendance[months[currentMonth]] || {};
+    const students = groups[selectedGroup];
 
+    let presentList = [];
+    let absentList = [];
+
+    students.forEach((student) => {
+      if (monthData[student]?.keldi) {
+        presentList.push(student);
+      } else if (monthData[student]?.kemadi) {
+        absentList.push(student);
+      }
+    });
+
+    const message = `
+📊 DAVOMAT HISOBOTI
+━━━━━━━━━━━━━━━━━━
+📅 Sana: ${date}
+👥 Guruh: ${selectedGroup}
+📆 Oy: ${months[currentMonth]}
+
+✅ KELGANLAR (${presentList.length}):
+${presentList.length > 0 ? presentList.map((s) => `  • ${s}`).join("\n") : "  Hech kim kelmadi"}
+
+❌ KELMAGANLAR (${absentList.length}):
+${absentList.length > 0 ? absentList.map((s) => `  • ${s}`).join("\n") : "  Hammasi kelgan"}
+
+📈 JAMI: ${students.length} ta o'quvchi
+📊 Foiz: ${Math.round((presentList.length / students.length) * 100)}%
+━━━━━━━━━━━━━━━━━━
+    `.trim();
+
+    setIsSending(true);
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text: message,
+            parse_mode: "HTML",
+          }),
+        }
+      );
+
+      if (response.ok) {
+        alert("✅ Hisobot muvaffaqiyatli yuborildi!");
+      } else {
+        alert("❌ Xatolik yuz berdi!");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ Xatolik yuz berdi!");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const toggleAttendance = (month, student, type) => {
     setAttendance((prev) => {
       const monthData = prev[month] || {};
-      const studentData = monthData[student] || { keldi: false, kemadi: false };
+      const studentData = monthData[student] || {
+        keldi: false,
+        kemadi: false,
+      };
 
       const newData = {
         keldi: type === "keldi" ? !studentData.keldi : false,
         kemadi: type === "kemadi" ? !studentData.kemadi : false,
       };
 
-      const statusMsg = newData.keldi
-        ? "keldi"
-        : newData.kemadi
-        ? "kemadi"
-        : "none";
-      if (statusMsg !== "none") {
-        sendTelegramMessage(student, statusMsg, date);
-      }
-
-      return { ...prev, [month]: { ...monthData, [student]: newData } };
+      return {
+        ...prev,
+        [month]: { ...monthData, [student]: newData },
+      };
     });
   };
 
@@ -111,28 +158,27 @@ function App() {
   const stats = getStats();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-            <Users className="text-indigo-600" size={36} />
-            JQ Davomat Tizimi
-          </h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Users className="w-8 h-8 text-indigo-600" />
+            <h1 className="text-3xl font-bold text-gray-800">
+              JQ Davomat Tizimi
+            </h1>
+          </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Controls */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="grid md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <Users size={18} className="text-indigo-600" />
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Guruh
               </label>
               <select
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none"
                 value={selectedGroup}
                 onChange={(e) => setSelectedGroup(e.target.value)}
               >
@@ -145,12 +191,11 @@ function App() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <Calendar size={18} className="text-indigo-600" />
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Oy
               </label>
               <select
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none"
                 value={currentMonth}
                 onChange={(e) => setCurrentMonth(Number(e.target.value))}
               >
@@ -162,22 +207,19 @@ function App() {
               </select>
             </div>
 
-            <div className="flex items-end">
-              <div className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp size={20} />
-                  <span className="text-sm font-medium">Statistika</span>
-                </div>
-                <div className="text-2xl font-bold">
-                  {stats.present}/{stats.total}
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Statistika
+              </label>
+              <div className="p-3 bg-indigo-50 rounded-lg border-2 border-indigo-200 text-center font-semibold text-indigo-700">
+                {stats.present}/{stats.total}
               </div>
             </div>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -186,9 +228,7 @@ function App() {
                   {stats.present}
                 </p>
               </div>
-              <div className="bg-green-100 p-4 rounded-full">
-                <CheckCircle className="text-green-600" size={32} />
-              </div>
+              <CheckCircle className="w-12 h-12 text-green-500" />
             </div>
           </div>
 
@@ -200,9 +240,7 @@ function App() {
                   {stats.absent}
                 </p>
               </div>
-              <div className="bg-red-100 p-4 rounded-full">
-                <XCircle className="text-red-600" size={32} />
-              </div>
+              <XCircle className="w-12 h-12 text-red-500" />
             </div>
           </div>
 
@@ -217,81 +255,87 @@ function App() {
                   %
                 </p>
               </div>
-              <div className="bg-indigo-100 p-4 rounded-full">
-                <TrendingUp className="text-indigo-600" size={32} />
-              </div>
+              <TrendingUp className="w-12 h-12 text-indigo-500" />
             </div>
           </div>
         </div>
 
         {/* Student Table */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
-            <h2 className="text-xl font-bold text-white">
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-800">
               {selectedGroup} - {months[currentMonth]}
             </h2>
           </div>
 
-          <div className="p-6">
-            <div className="space-y-4">
-              {groups[selectedGroup].map((student) => {
-                const studentData = attendance[months[currentMonth]]?.[student];
-                return (
-                  <div
-                    key={student}
-                    className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-300 transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                        {student.charAt(0)}
-                      </div>
-                      <span className="text-lg font-semibold text-gray-800">
-                        {student}
-                      </span>
+          <div className="space-y-3">
+            {groups[selectedGroup].map((student) => {
+              const studentData =
+                attendance[months[currentMonth]]?.[student];
+              return (
+                <div
+                  key={student}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                      {student.charAt(0)}
                     </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        className={`px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 ${
-                          studentData?.keldi
-                            ? "bg-green-500 text-white shadow-lg"
-                            : "bg-gray-100 text-gray-700 hover:bg-green-50"
-                        }`}
-                        onClick={() =>
-                          toggleAttendance(
-                            months[currentMonth],
-                            student,
-                            "keldi"
-                          )
-                        }
-                      >
-                        <CheckCircle size={20} />
-                        Keldi
-                      </button>
-
-                      <button
-                        className={`px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 ${
-                          studentData?.kemadi
-                            ? "bg-red-500 text-white shadow-lg"
-                            : "bg-gray-100 text-gray-700 hover:bg-red-50"
-                        }`}
-                        onClick={() =>
-                          toggleAttendance(
-                            months[currentMonth],
-                            student,
-                            "kemadi"
-                          )
-                        }
-                      >
-                        <XCircle size={20} />
-                        Kelmadi
-                      </button>
-                    </div>
+                    <span className="font-medium text-gray-800">
+                      {student}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                        studentData?.keldi
+                          ? "bg-green-500 text-white shadow-lg"
+                          : "bg-gray-200 text-gray-700 hover:bg-green-100"
+                      }`}
+                      onClick={() =>
+                        toggleAttendance(
+                          months[currentMonth],
+                          student,
+                          "keldi"
+                        )
+                      }
+                    >
+                      Keldi
+                    </button>
+                    <button
+                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                        studentData?.kemadi
+                          ? "bg-red-500 text-white shadow-lg"
+                          : "bg-gray-200 text-gray-700 hover:bg-red-100"
+                      }`}
+                      onClick={() =>
+                        toggleAttendance(
+                          months[currentMonth],
+                          student,
+                          "kemadi"
+                        )
+                      }
+                    >
+                      Kelmadi
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+        </div>
+
+        {/* Send Button */}
+        <div className="bg-white rounded-2xl shadow-xl p-6">
+          <button
+            onClick={sendTelegramSummary}
+            disabled={isSending}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-xl"
+          >
+            <Send className="w-5 h-5" />
+            {isSending ? "Yuborilmoqda..." : "Telegram guruhga yuborish"}
+          </button>
         </div>
       </div>
     </div>
