@@ -383,7 +383,7 @@ ${monthData[student]?.kemadi ? "⚠️ Farzandingiz bugun darsga kelmadi." : ""}
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">JQ Tech</h1>
-                <p className="text-white text-opacity-80 text-sm">Davomat Tizimi</p>
+                <p className="text-white text-opacity-80 text-sm">LMS</p>
               </div>
             </div>
             <button
